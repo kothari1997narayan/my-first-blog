@@ -8,14 +8,30 @@ make_published.short_description = "Mark selected stories as published"
 class PostAdmin(admin.ModelAdmin):
     list_display = ['title', 'status']
     ordering = ['title']
-    actions = ['make_published']
+    actions = ['make_published','toggle_publish']
+
     def make_published(self, request, queryset):
-    rows_updated = queryset.update(status='p')
-    if rows_updated == 1:
-        message_bit = "1 story was"
-    else:
-        message_bit = "%s stories were" % rows_updated
-    self.message_user(request, "%s successfully marked as published." % message_bit)
+        rows_updated = queryset.update(status='p')
+        for post in queryset:
+            post.status = 'p'
+    
+    def toggle_publish(self, request, obj, parent_obj=None):
+        if obj.status == 'd':
+            obj.status = 'p'
+        else:
+            obj.status = 'd'
+
+        obj.save()
+        status = 'unpublished' if obj.status == 'd' else 'published'
+        messages.info(request, _("Article {}.".format(status)))
+
+    def get_toggle_publish_label(self, obj):
+        label = 'publish' if obj.status == 'd' else 'unpublish'
+        return 'Toggle {}'.format(label)
+
+    def get_toggle_publish_css(self, obj):
+        return (
+            'btn-green' if obj.status == Article.DRAFT else 'btn-red')
 
 
 admin.site.register(Post, PostAdmin)
